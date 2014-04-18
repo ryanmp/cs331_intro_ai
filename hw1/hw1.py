@@ -14,18 +14,18 @@ astar
 
 '''
 
-
 class Node(object):
-	def __init__(self, data, parent=None):
-		self.data = data
-		self.children = []
-		self.parent = parent
+    def __init__(self, parent, data):
+        self.data = data
+        self.children = []
+        self.parent = parent
 
-	def add_child(self, obj):
-		self.children.append(obj)
-		#the last child is the one just added
-		self.children[-1].parent = self 
 
+a = Node([1,2], "root")
+print a
+
+b = Node([0,5], a)
+a.children.append(b)
 
 def parse_input(file_name):
 	f = open(file_name)
@@ -153,33 +153,8 @@ def dfs(s0,s1):
 	return ("oops! reached max of:", x)
 
 
-def trace_solution(s,start_state):
-
-	solution = []
-
-	all_explored = s[2]
-
-	state = s[1]
-	solution.append(state[0])
-	solution.append(state[1])
-
-	x = 0
-	while x < 100:
-		x += 1
-		for i in all_explored:
-			if i[0] == start_state and i[0] == state[1]:	
-				solution.reverse()
-				return solution
-
-			if i[0] == state[1] and i[1] not in solution:
-				state = i
-				solution.append(state[1])
-
-	solution.reverse()
-	return solution
-
-
 def main(argv):
+	if (len(argv) == 0): return 0 
 
 	init_state = parse_input(argv[0])
 	goal_state = parse_input(argv[1])
@@ -214,8 +189,6 @@ def main(argv):
 	output = open(argv[3], 'w+') 
 	output.write(str(solution[1]))
 	output.close()
-
-
 
 if __name__ == "__main__":
    main(sys.argv[1:])
