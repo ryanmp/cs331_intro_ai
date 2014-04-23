@@ -65,6 +65,44 @@ class game:
 		new_play[x[0]][x[1]] = which_player
 		self.play(new_play)
 
+
+# game tree object
+# basic Node class... used to create tree srtucture
+class Node(object):
+	def __init__(self, data, parent=None):
+		self.data = data
+		self.children = []
+		self.parent = parent
+		self.depth = 0
+
+	def add_child(self, obj):
+		self.children.append(obj)
+		#the last child is the one just added
+		self.children[-1].parent = self
+
+	def add_child_set_depth(self, obj, t):
+		#obj.depth = self.depth + 1
+		self.children.append(obj)
+		self.children[-1].parent = self
+
+		#need to set depth recursively
+		def set_depth(t):
+			if (t != None or t != str):
+				if (len(t.children) > 0):
+					for i in t.children:
+						if (i != None):
+							i.depth = t.depth + 1
+							set_depth(i)
+		set_depth(t)
+
+	# used primarly for testing purposes
+	def print_tree(self, idx=0):
+		idx += 1
+		if (self):
+			print idx; print self.data
+			for i in self.children:
+				i.print_tree(idx)
+
 # initialize board
 s1 = game([[0,0,0],[0,0,0],[0,0,0]])
 s1.print_state()
@@ -72,7 +110,10 @@ s1.print_state()
 # play a game
 # completely random at the moment
 whose_turn = -1
-while (s1.get_num_open_squares() > 0):
+while (True):
+	if (s1.get_num_open_squares() <= 0):
+		print "tie"
+		break
 	s1.random_play(whose_turn)
 	whose_turn *= -1
 	s1.print_state()
@@ -83,7 +124,3 @@ while (s1.get_num_open_squares() > 0):
 	elif (winner == 1):
 		print "o wins"
 		break
-
-
-
-
