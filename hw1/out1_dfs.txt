@@ -1,5 +1,5 @@
 expanded nodes: 1
-run time: 9.58E-05
+run time: 1.10E-04
 length of solution path: 3
 
 solution: 

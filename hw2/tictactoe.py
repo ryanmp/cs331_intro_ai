@@ -1,6 +1,8 @@
 import numpy as np
 from sets import Set
 import random
+import Tkinter as tk
+import sys
 
 # uses a 3x3 data array for current state
 # 0 for blank
@@ -65,7 +67,6 @@ class game:
 		new_play[x[0]][x[1]] = which_player
 		self.play(new_play)
 
-
 # game tree object
 # basic Node class... used to create tree srtucture
 class Node(object):
@@ -103,24 +104,98 @@ class Node(object):
 			for i in self.children:
 				i.print_tree(idx)
 
-# initialize board
-s1 = game([[0,0,0],[0,0,0],[0,0,0]])
-s1.print_state()
+#gui stuff
+def callback(number):
+		print "button", number
+		btns[0]["text"] = "ok"
 
-# play a game
-# completely random at the moment
-whose_turn = -1
-while (True):
-	if (s1.get_num_open_squares() <= 0):
-		print "tie"
-		break
-	s1.random_play(whose_turn)
-	whose_turn *= -1
+def move(g,type,whose_turn):
+
+	if (type=='random'):
+		g.random_play(whose_turn)
+
+	elif (type=='human'):
+		while (True):
+			idx = int( raw_input('enter a move (0-8): ') )
+			new_play = [[0,0,0],[0,0,0],[0,0,0]]
+			xx = int(idx/3) ; yy = idx%3
+			if (xx,yy) in g.get_open_squares(): break;
+
+		new_play[xx][yy] = whose_turn
+		g.play(new_play)
+
+	g.print_state()
+	return g
+
+
+def main(argv):
+
+	# initialize board
+	s1 = game([[0,0,0],[0,0,0],[0,0,0]])
 	s1.print_state()
-	winner = s1.check_for_win()
-	if (winner == -1):
-		print "x wins"
-		break
-	elif (winner == 1):
-		print "o wins"
-		break
+
+	# draw gui stuff
+	btns = []
+	for i in xrange(3):
+		for j in xrange(3):
+			temp = tk.Button(text=s1.data[i][j], command=lambda x=i, y=j: callback(x*3+y)).grid(row=i, column=j)
+			btns.append(temp)
+
+	if (len(argv) != 2):
+		print "Needs 2 args."
+		print "They can be: 'human', 'random', or 'minimax'."
+		return 0
+
+	print "starting "+ str(argv[0]) +" vs. "+ str(argv[1]) +" game..."
+
+	whose_turn = 1 	# x always goes first
+
+	# game loop
+	while (True):
+
+		# x move!
+		s1 = move(s1,argv[0],whose_turn)
+		whose_turn *= -1
+
+		winner = s1.check_for_win()
+		if (winner == -1):
+			print "x wins"
+			break
+		elif (winner == 1):
+			print "o wins"
+			break
+		if (s1.get_num_open_squares() <= 0):
+			print "tie"
+			break
+
+		# o move!
+		s1 = move(s1,argv[1],whose_turn)
+		whose_turn *= -1
+
+		winner = s1.check_for_win()
+		if (winner == -1):
+			print "x wins"
+			break
+		elif (winner == 1):
+			print "o wins"
+			break
+		if (s1.get_num_open_squares() <= 0):
+			print "tie"
+			break
+
+		#filename = raw_input('enter a move (0-8): ')
+
+	# gui loop? I still don't know how this is supposed to work
+	#tk.mainloop()
+
+if __name__ == "__main__":
+	#main(sys.argv[1:])
+
+
+	'''
+	next we are going to compute a complete game tree...
+	I know this isn't strictly the minmax AI specificied for this project,
+	but it seems like a fun thing to try.
+	'''
+
+	print 'generating game tree'
