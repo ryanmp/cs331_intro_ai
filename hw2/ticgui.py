@@ -1,6 +1,6 @@
 # Original code from Daniel Tan
 # Cleaned up for the assignment by Aaron Johnson.
-# Slightly modified by Ryan Phillips
+# ...Slightly modified by Ryan Phillips
 
 import os
 from Tkinter import *
@@ -15,22 +15,12 @@ class main:
 
     def __init__(self, master, args = None):
 
-        # start RMP
+        # start edit (ryan)
         self.s1 = game([[0,0,0],[0,0,0],[0,0,0]])
         self.whose_turn = 1
-
-        try:
-            print "loading gametree into mem (could take 30 seconds)"
-            self.t = pickle.load( open( "tree.p", "rb" ) ) #load
-        except:
-            print "couldn't find saved game tree..."
-            to_dump = generate_game_tree()
-            to_dump.eval_bottom_up()
-            pickle.dump( to_dump, open( "tree.p", "wb" ) ) #save
-            self.t = to_dump
+        self.t = generate_game_tree(self.s1, self.whose_turn)
         self.current_node = self.t
-        # end RMP
-
+        # end edit (ryan)
 
         # master frame
         self.frame = Frame(master)
@@ -87,11 +77,11 @@ class main:
     def start_clicked(self):
         '''Starts a new game.'''
 
-        # RMP
+        # ryan
         self.s1 = game([[0,0,0],[0,0,0],[0,0,0]])
         self.current_node = self.t
         self.whose_turn = 1
-        # END RMP
+        # END ryan
 
         # refresh canvas
         self.canvas.delete(ALL)
@@ -249,7 +239,7 @@ class main:
             # update GUI board
             self.draw_mark(r, c)
 
-            self.s1, self.current_node = move(self.s1,(r,c),self.whose_turn, self.current_node)
+            self.current_node = move(self.current_node,(r,c),self.whose_turn)
 
             # end-move tasks
             print('Human chose ' + str((r, c)))
@@ -261,7 +251,7 @@ class main:
 
 
     def move_random(self):
-        self.s1, self.current_node = move(self.s1,'random',self.whose_turn, self.current_node)
+        self.current_node = move(self.current_node,'random',self.whose_turn)
 
         r = -1
         c = -1
@@ -270,9 +260,9 @@ class main:
 
         for i in xrange(3):
             for j in xrange(3):
-                if self.s1.data[i][j] == 1: temp[i][j] = 0
-                if self.s1.data[i][j] == -1: temp[i][j] = 1
-                if self.s1.data[i][j] == 0: temp[i][j] = None
+                if self.current_node.data.data[i][j] == 1: temp[i][j] = 0
+                if self.current_node.data.data[i][j] == -1: temp[i][j] = 1
+                if self.current_node.data.data[i][j] == 0: temp[i][j] = None
 
         for i in xrange(3):
             for j in xrange(3):
@@ -288,7 +278,7 @@ class main:
 
     def move_minimax(self):
 
-        self.s1, self.current_node = move(self.s1,'minimax',self.whose_turn, self.current_node)
+        self.current_node = move(self.current_node,'minimax',self.whose_turn)
 
         r = -1
         c = -1
@@ -297,9 +287,9 @@ class main:
 
         for i in xrange(3):
             for j in xrange(3):
-                if self.s1.data[i][j] == 1: temp[i][j] = 0
-                if self.s1.data[i][j] == -1: temp[i][j] = 1
-                if self.s1.data[i][j] == 0: temp[i][j] = None
+                if self.current_node.data.data[i][j] == 1: temp[i][j] = 0
+                if self.current_node.data.data[i][j] == -1: temp[i][j] = 1
+                if self.current_node.data.data[i][j] == 0: temp[i][j] = None
 
         for i in xrange(3):
             for j in xrange(3):
@@ -314,11 +304,10 @@ class main:
         print('Minimax move errored')
 
 
-
-
 def valid(args):
 	p = ['human','random','minimax']
 	return all((x in p for x in args))
+
 
 if __name__ == "__main__":
     args = os.sys.argv[1:]

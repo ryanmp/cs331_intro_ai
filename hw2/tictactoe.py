@@ -6,6 +6,12 @@ import sys
 import cPickle as pickle
 import os
 
+'''
+author: Ryan Phillips
+class: CS331
+email: philliry@onid.oregonstate.edu
+'''
+
 # uses a 3x3 data array for current state
 # 0 for blank
 # 1 for x
@@ -26,6 +32,7 @@ class game:
 			if i < 2: print "-------"
 			#print self.data[i]
 		print ""
+
 	# returns 1 of x wins,
 	# -1 if 0,
 	# 0 if nobody wins
@@ -90,8 +97,6 @@ class game:
 		return ret
 
 
-
-
 # basic Node class... used to create tree srtucture
 class Node(object):
 	def __init__(self, data, parent=None):
@@ -106,10 +111,11 @@ class Node(object):
 		self.children[-1].parent = self
 
 
-
-
+# calculates minimax ahead of time and stores the score of each node in a tree
+# then, if the game is played repeatedly, the same tree can be used
 def generate_game_tree(s1, whose_turn):
 	print 'generating game tree'
+	print '(this may take 2-4 minutes)'
 
 	root = Node(s1)
 
@@ -119,15 +125,12 @@ def generate_game_tree(s1, whose_turn):
 		t1 = node.data.get_num_open_squares()
 		t2 = node.data.check_for_win()
 		if (t1 <= 0):
-			#new_node.ties = 1
 			node.val = 0
 			return 0
 		if (t2 == 1):
-			#new_node.x_wins = 10
 			node.val = 10
 			return 10
 		if (t2 == -1):
-			#new_node.o_wins = 10
 			node.val = -10
 			return -10
 
@@ -158,32 +161,21 @@ def generate_game_tree(s1, whose_turn):
 
 
 	minimax(root, whose_turn)
-	print 'done'
+	print 'done making game tree'
 	return root
-
-
-
 
 
 def move(tree,_type,whose_turn):
 
 	ret_node = None
 
-
 	if (whose_turn == 1):
 		print "x to move..."
 	else:
 		print "o to move..."
 
-
 	if(_type == 'minimax'):
-
-		#to speed it up, make the first step deterministic
-		if tree.data.get_num_open_squares() == 9:
-			ret_node = tree.children[0]
-		else:
-
-			ret_node = mm_play(tree,whose_turn)
+		ret_node = mm_play(tree,whose_turn)
 
 	elif(_type == 'random'):
 		ret_node = random.choice(tree.children)
@@ -195,24 +187,29 @@ def move(tree,_type,whose_turn):
 			if idx >= 0 and idx < rang: break;
 		ret_node = tree.children[idx]
 
+	# this is a bit of a hack, I used it so that the gui overides the default
+	# way of input for human player
 	else:
-		print "error! invalid player type"
+		# from "type psuedo args"
+		xx = _type[0] ; yy = _type[1]
 
+		for i in xrange(len(tree.children)):
+			if tree.children[i].data.data[xx][yy] == whose_turn:
+				ret_node = tree.children[i]
 
+	# print new board (after move)
 	ret_node.data.print_state()
 	return ret_node
 
 
+# helper function for minimax player
+# this is called by move
 def mm_play(t,whose_turn):
-
 	next_node = t.children[0]
-
 	if (whose_turn == 1):
 		best = -1000
 		for i in xrange(len(t.children)):
 			print t.children[i].val
-			#best = max(t.children[i].val, best)
-
 			if t.children[i].val > best:
 				best = t.children[i].val
 				next_node = t.children[i]
@@ -223,8 +220,6 @@ def mm_play(t,whose_turn):
 		best = 1000
 		for i in xrange(len(t.children)):
 			print t.children[i].val
-			#best = min(t.children[i].val, best)
-
 			if t.children[i].val < best:
 				best = t.children[i].val
 				next_node = t.children[i]
@@ -232,10 +227,10 @@ def mm_play(t,whose_turn):
 		return next_node
 
 
-
+# game running loop.
+# continues until game is finished
+# params specify the two players, the game_tree, and who starts
 def play_game(type1,type2,t1,whose_turn):
-
-
 
 	while (True):
 
@@ -270,11 +265,22 @@ def play_game(type1,type2,t1,whose_turn):
 			break
 
 
+def main(argv):
+	if (len(argv) != 2):
+		print "Needs 2 args."
+		print "They can be: 'human', 'random', or 'minimax'."
+		return 0
 
-whose_turn = 1
-starting_state = game([[0,0,0],[0,0,0],[0,0,0]])
-t = generate_game_tree(starting_state, whose_turn)
-print "start"
-t.data.print_state()
+	print "starting "+ str(argv[0]) +" vs. "+ str(argv[1]) +" game..."
 
-play_game('minimax','minimax',t,whose_turn)
+	#init
+	whose_turn = 1
+	starting_state = game([[0,0,0],[0,0,0],[0,0,0]])
+	t = generate_game_tree(starting_state, whose_turn)
+
+	#run
+	play_game(argv[0],argv[1],t,whose_turn)
+
+
+if __name__ == "__main__":
+	ret = main(sys.argv[1:])

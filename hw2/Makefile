@@ -1,2 +1,2 @@
 default:
-	python tictactoe.py random minimax
+	python ticgui.py minimax minimax
