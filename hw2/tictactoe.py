@@ -3,6 +3,8 @@ from sets import Set
 import random
 import Tkinter as tk
 import sys
+import cPickle as pickle
+import os
 
 # uses a 3x3 data array for current state
 # 0 for blank
@@ -13,7 +15,16 @@ class game:
 		self.data = data
 	def print_state(self):
 		for i in xrange(3):
-			print self.data[i]
+			s = ""
+			for j in xrange(3):
+				s+= "|"
+				if self.data[i][j] == 1: s+='x'
+				if self.data[i][j] == -1: s+='o'
+				if self.data[i][j] == 0: s+= ' '
+			s+= "|"
+			print s
+			if i < 2: print "-------"
+			#print self.data[i]
 		print ""
 	# returns 1 of x wins,
 	# -1 if 0,
@@ -67,135 +78,203 @@ class game:
 		new_play[x[0]][x[1]] = which_player
 		self.play(new_play)
 
-# game tree object
+	def get_successors(self,which_player):
+		possible_plays = self.get_open_squares()
+		ret = []
+		for i in possible_plays:
+			temp = game(self.data) #current state of board
+			new_play = [[0,0,0],[0,0,0],[0,0,0]]
+			new_play[i[0]][i[1]] = which_player
+			temp.play(new_play)
+			ret.append(temp)
+		return ret
+
+
+
+
 # basic Node class... used to create tree srtucture
 class Node(object):
 	def __init__(self, data, parent=None):
 		self.data = data
 		self.children = []
 		self.parent = parent
-		self.depth = 0
+		self.val = None
 
 	def add_child(self, obj):
 		self.children.append(obj)
 		#the last child is the one just added
 		self.children[-1].parent = self
 
-	def add_child_set_depth(self, obj, t):
-		#obj.depth = self.depth + 1
-		self.children.append(obj)
-		self.children[-1].parent = self
 
-		#need to set depth recursively
-		def set_depth(t):
-			if (t != None or t != str):
-				if (len(t.children) > 0):
-					for i in t.children:
-						if (i != None):
-							i.depth = t.depth + 1
-							set_depth(i)
-		set_depth(t)
 
-	# used primarly for testing purposes
-	def print_tree(self, idx=0):
-		idx += 1
-		if (self):
-			print idx; print self.data
-			for i in self.children:
-				i.print_tree(idx)
 
-#gui stuff
-def callback(number):
-		print "button", number
-		btns[0]["text"] = "ok"
+def generate_game_tree(s1, whose_turn):
+	print 'generating game tree'
 
-def move(g,type,whose_turn):
+	root = Node(s1)
 
-	if (type=='random'):
-		g.random_play(whose_turn)
+	def minimax(node,whose_turn):
 
-	elif (type=='human'):
+		to_add = node.data.get_successors(whose_turn)
+		t1 = node.data.get_num_open_squares()
+		t2 = node.data.check_for_win()
+		if (t1 <= 0):
+			#new_node.ties = 1
+			node.val = 0
+			return 0
+		if (t2 == 1):
+			#new_node.x_wins = 10
+			node.val = 10
+			return 10
+		if (t2 == -1):
+			#new_node.o_wins = 10
+			node.val = -10
+			return -10
+
+		if whose_turn == 1:
+			bestValue = -1000
+			for i in to_add:
+
+				new_node = Node(i)
+				node.add_child(new_node)
+
+				val = minimax(new_node, -1)
+				bestValue = max(bestValue, val)
+
+			node.val = bestValue
+			return bestValue
+		elif whose_turn == -1:
+			bestValue = 1000
+			for i in to_add:
+
+				new_node = Node(i)
+				node.add_child(new_node)
+
+				val = minimax(new_node, 1)
+				bestValue = min(bestValue, val)
+
+			node.val = bestValue
+			return bestValue
+
+
+	minimax(root, whose_turn)
+	print 'done'
+	return root
+
+
+
+
+
+def move(tree,_type,whose_turn):
+
+	ret_node = None
+
+
+	if (whose_turn == 1):
+		print "x to move..."
+	else:
+		print "o to move..."
+
+
+	if(_type == 'minimax'):
+
+		#to speed it up, make the first step deterministic
+		if tree.data.get_num_open_squares() == 9:
+			ret_node = tree.children[0]
+		else:
+
+			ret_node = mm_play(tree,whose_turn)
+
+	elif(_type == 'random'):
+		ret_node = random.choice(tree.children)
+
+	elif (_type=='human'):
+		rang = tree.data.get_num_open_squares()
 		while (True):
-			idx = int( raw_input('enter a move (0-8): ') )
-			new_play = [[0,0,0],[0,0,0],[0,0,0]]
-			xx = int(idx/3) ; yy = idx%3
-			if (xx,yy) in g.get_open_squares(): break;
+			idx = int( raw_input('enter a move #: ') )
+			if idx >= 0 and idx < rang: break;
+		ret_node = tree.children[idx]
 
-		new_play[xx][yy] = whose_turn
-		g.play(new_play)
-
-	g.print_state()
-	return g
+	else:
+		print "error! invalid player type"
 
 
-def main(argv):
+	ret_node.data.print_state()
+	return ret_node
 
-	# initialize board
-	s1 = game([[0,0,0],[0,0,0],[0,0,0]])
-	s1.print_state()
 
-	# draw gui stuff
-	btns = []
-	for i in xrange(3):
-		for j in xrange(3):
-			temp = tk.Button(text=s1.data[i][j], command=lambda x=i, y=j: callback(x*3+y)).grid(row=i, column=j)
-			btns.append(temp)
+def mm_play(t,whose_turn):
 
-	if (len(argv) != 2):
-		print "Needs 2 args."
-		print "They can be: 'human', 'random', or 'minimax'."
-		return 0
+	next_node = t.children[0]
 
-	print "starting "+ str(argv[0]) +" vs. "+ str(argv[1]) +" game..."
+	if (whose_turn == 1):
+		best = -1000
+		for i in xrange(len(t.children)):
+			print t.children[i].val
+			#best = max(t.children[i].val, best)
 
-	whose_turn = 1 	# x always goes first
+			if t.children[i].val > best:
+				best = t.children[i].val
+				next_node = t.children[i]
 
-	# game loop
+		return next_node
+
+	elif (whose_turn == -1):
+		best = 1000
+		for i in xrange(len(t.children)):
+			print t.children[i].val
+			#best = min(t.children[i].val, best)
+
+			if t.children[i].val < best:
+				best = t.children[i].val
+				next_node = t.children[i]
+
+		return next_node
+
+
+
+def play_game(type1,type2,t1,whose_turn):
+
+
+
 	while (True):
 
 		# x move!
-		s1 = move(s1,argv[0],whose_turn)
+		t1 = move(t1,type1,whose_turn)
 		whose_turn *= -1
 
-		winner = s1.check_for_win()
-		if (winner == -1):
+		winner = t1.data.check_for_win()
+		if (winner == 1):
 			print "x wins"
 			break
-		elif (winner == 1):
+		elif (winner == -1):
 			print "o wins"
 			break
-		if (s1.get_num_open_squares() <= 0):
+		if (t1.data.get_num_open_squares() <= 0):
 			print "tie"
 			break
 
 		# o move!
-		s1 = move(s1,argv[1],whose_turn)
+		t1 = move(t1,type2,whose_turn)
 		whose_turn *= -1
 
-		winner = s1.check_for_win()
-		if (winner == -1):
+		winner = t1.data.check_for_win()
+		if (winner == 1):
 			print "x wins"
 			break
-		elif (winner == 1):
+		elif (winner == -1):
 			print "o wins"
 			break
-		if (s1.get_num_open_squares() <= 0):
+		if (t1.data.get_num_open_squares() <= 0):
 			print "tie"
 			break
 
-		#filename = raw_input('enter a move (0-8): ')
-
-	# gui loop? I still don't know how this is supposed to work
-	#tk.mainloop()
-
-if __name__ == "__main__":
-	#main(sys.argv[1:])
 
 
-	'''
-	next we are going to compute a complete game tree...
-	I know this isn't strictly the minmax AI specificied for this project,
-	but it seems like a fun thing to try.
-	'''
+whose_turn = 1
+starting_state = game([[0,0,0],[0,0,0],[0,0,0]])
+t = generate_game_tree(starting_state, whose_turn)
+print "start"
+t.data.print_state()
 
-	print 'generating game tree'
+play_game('minimax','minimax',t,whose_turn)
