@@ -44,73 +44,6 @@ def calc_bd(labels):
 	t = [int(i) for i in labels]
 	return sum(t)/float(len(labels)) # this is the value for T
 
-def calc_probs(f_data):
-	ret = []
-	for line in f_data:
-		temp_line = []
-		for i in line:
-			temp = i + 1
-			temp = float(temp)/len(line)
-			temp_line.append(temp)
-		ret.append(temp_line)
-	return ret
-
-
-
-traindata = parse_data('traindata.txt')
-testdata = parse_data('testdata.txt')
-
-trainlabels = parse_list('trainlabels.txt')
-testlabels = parse_list('testlabels.txt')
-
-stoplist = parse_list('stoplist.txt')
-
-vocab = get_vocab(traindata,stoplist)
-
-f_traindata = featurize_data(vocab, traindata, trainlabels)
-f_testdata = featurize_data(vocab, testdata, testlabels)
-out_to_preprocessed(vocab,f_traindata,'preprocessed.txt') # 50 points
-
-# calculate bd probability (# with T over total)
-p_bd = calc_bd(trainlabels)
-
-#f_probs = calc_probs(f_traindata)
-
-
-
-
-
-
-class_0_ints = [0 for i in xrange(len(vocab))] #fortune
-class_1_ints = [0 for i in xrange(len(vocab))] #future
-for i in xrange(len(traindata)): # for each saying
-	for j in traindata[i]: # for each word in saying
-		if j in vocab:
-			idx = vocab.index(j)
-			if trainlabels[i] == '0':
-				class_0_ints[idx] += 1
-
-			if trainlabels[i] == '1':
-				class_1_ints[idx] += 1
-
-
-t = [int(i) for i in trainlabels]
-true_sum = sum(t)
-false_sum = len(trainlabels) - true_sum
-
-class_0_probs = []
-for i in class_0_ints:
-	total = sum(class_0_ints)
-	temp = math.log(float(i+1)/(total+false_sum))
-	class_0_probs.append(temp)
-
-class_1_probs = []
-for i in class_1_ints:
-	total = sum(class_1_ints)
-	temp = math.log(float(i+1)/(total+true_sum))
-	class_1_probs.append(temp)
-
-
 def test_one(which, data):
 	t_data_one = [i for i in data[which]]
 
@@ -143,26 +76,103 @@ def check_results(results, labels):
 			number_correct += 1
 	return float(number_correct)/len(labels)
 
+# calculate the rest of the probs ...
+# I probably should put this all in legit functions at some point!
+def calc_probs_and_test(f_data, trainlabels, traindata, vocab):
+
+	# calculate bd probability (# with T over total)
+	global p_bd
+	p_bd = calc_bd(trainlabels)
+
+	class_0_ints = [0 for i in xrange(len(vocab))] #fortune
+	class_1_ints = [0 for i in xrange(len(vocab))] #future
+	for i in xrange(len(traindata)): # for each saying
+		for j in traindata[i]: # for each word in saying
+			if j in vocab:
+				idx = vocab.index(j)
+				if trainlabels[i] == '0':
+					class_0_ints[idx] += 1
+
+				if trainlabels[i] == '1':
+					class_1_ints[idx] += 1
+
+	t = [int(i) for i in trainlabels]
+	true_sum = sum(t)
+	false_sum = len(trainlabels) - true_sum
+
+	global class_0_probs
+	class_0_probs = []
+	for i in class_0_ints:
+		total = sum(class_0_ints)
+		temp = math.log(float(i+1)/(total+false_sum))
+		class_0_probs.append(temp)
+
+	global class_1_probs
+	class_1_probs = []
+	for i in class_1_ints:
+		total = sum(class_1_ints)
+		temp = math.log(float(i+1)/(total+true_sum))
+		class_1_probs.append(temp)
+
+	return test_all(f_data)
 
 
-
-
-
-results = test_all(f_traindata)
-print check_results(results,trainlabels)
-
-results = test_all(f_testdata)
-print check_results(results,testlabels)
-
-
-
-'''
 def main(args):
-	print args
+
+	out_file_name = "results.txt"
+
+	if len(args) == 0:
+		traindata = parse_data('traindata.txt')
+		testdata = parse_data('testdata.txt')
+
+		trainlabels = parse_list('trainlabels.txt')
+		testlabels = parse_list('testlabels.txt')
+		
+		stoplist = parse_list('stoplist.txt')
+
+		vocab = get_vocab(traindata,stoplist)
+
+		f_traindata = featurize_data(vocab, traindata, trainlabels)
+		f_testdata = featurize_data(vocab, testdata, testlabels)
+		out_to_preprocessed(vocab,f_traindata,'preprocessed.txt') # 50 points
+
+		results = calc_probs_and_test(f_traindata, trainlabels, traindata, vocab)
+		accuracy = check_results(results,trainlabels)
+		print "accuracy on training data:", accuracy
+
+		results = calc_probs_and_test(f_testdata, trainlabels, traindata, vocab)
+		accuracy = check_results(results,testlabels)
+		print "accuracy on testing data:", accuracy
+
+	else:
+
+		f = open(out_file_name, "a")
+		f.write("running tests with params: " + str(args) + "\n")
+
+		traindata = parse_data(args[1])
+		testdata = parse_data(args[3])
+
+		trainlabels = parse_list(args[2])
+		testlabels = parse_list(args[4])
+		
+		stoplist = parse_list(args[0])
+
+		vocab = get_vocab(traindata,stoplist)
+
+		f_traindata = featurize_data(vocab, traindata, trainlabels)
+		f_testdata = featurize_data(vocab, testdata, testlabels)
+		#out_to_preprocessed(vocab,f_traindata,'preprocessed.txt') # 50 points
+
+		results = calc_probs_and_test(f_testdata, trainlabels, traindata, vocab)
+		accuracy = check_results(results,testlabels)
+		
+		f.write("accuracy: " + str(accuracy) + "\n")
+		f.close()
+
 
 if __name__ == '__main__':
 	import sys
 	main(sys.argv[1:])
-	'''
+	
 
 
